@@ -37,23 +37,27 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'counceling_app'
+    'counceling_app',
     'rest_framework',
     'djoser',
     'rest_framework.authtoken',
 ]
 
-DJOSER={"USER_ID_FIELD":"username"}
+DJOSER = {
+    "USER_ID_FIELD": "email",
+    "LOGIN_FIELD": "email",
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication', # For token-based login
-        'rest_framework.authentication.SessionAuthentication', # For browsable API and Django Admin login
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny', # Default to allow any
+        'rest_framework.permissions.AllowAny',
     )
 }
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
