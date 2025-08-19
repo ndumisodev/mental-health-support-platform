@@ -37,16 +37,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'counceling_app',
+    'counseling_app',
     'rest_framework',
     'djoser',
     'rest_framework.authtoken',
 ]
 
-DJOSER = {
-    "USER_ID_FIELD": "email",
-    "LOGIN_FIELD": "email",
-}
+# DJOSER = {
+#     "USER_ID_FIELD": "email",
+#     "LOGIN_FIELD": "email",
+# }
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

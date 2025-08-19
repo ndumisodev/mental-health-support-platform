@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from counseling_app.views import hello_world
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -23,4 +24,7 @@ urlpatterns = [
     # Djoser URLs
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
+
+    path('hello/', hello_world, name='hello_world'),
+
 ]
