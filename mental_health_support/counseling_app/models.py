@@ -5,7 +5,6 @@ from django.dispatch import receiver
 
 
 class Profile(models.Model):
-
     ROLE_CLIENT = "client"
     ROLE_COUNSELOR = "counselor"
 
@@ -23,16 +22,29 @@ class Profile(models.Model):
         return f"{self.user.username} - {self.role.capitalize()}"
 
 
+class CounselorApplication(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_APPROVED = "approved"
+    STATUS_REJECTED = "rejected"
 
-class CounselorProfile(models.Model):
-    profile = models.OneToOneField(Profile, on_delete=models.CASCADE)
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_APPROVED, "Approved"),
+        (STATUS_REJECTED, "Rejected"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     specialization = models.CharField(max_length=255)
     availability = models.JSONField()
     certifications = models.TextField(blank=True)
     experience = models.PositiveIntegerField(help_text="Years of experience")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    applied_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    admin_notes = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"Counselor Profile for {self.profile.user.username}"
+        return f"{self.user.username} - {self.status}"
 
 
 class ClientProfile(models.Model):
@@ -45,10 +57,9 @@ class ClientProfile(models.Model):
         return f"Client Profile for {self.profile.user.username}"
 
 
-# Signal to auto-create profile
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.create(user=instance)  # Default client
+        Profile.objects.create(user=instance)  # client is default
     else:
         instance.profile.save()
