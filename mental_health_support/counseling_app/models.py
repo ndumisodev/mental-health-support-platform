@@ -43,3 +43,10 @@ class ClientProfile(models.Model):
         return f"Client Profile for {self.profile.user.username}"
 
 
+# Signal to auto-create profile
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)  # Default client
+    else:
+        instance.profile.save()
