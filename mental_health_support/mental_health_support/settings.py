@@ -44,7 +44,7 @@ INSTALLED_APPS = [
 ]
 
 # DJOSER = {
-#     "USER_ID_FIELD": "email",
+#     "USER_ID_FIELD": "emai  l",
 #     "LOGIN_FIELD": "email",
 # }
 
