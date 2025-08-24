@@ -27,4 +27,7 @@ urlpatterns = [
 
     path('hello/', hello_world, name='hello_world'),
 
+    # App API endpoints
+    path('api/', include('counseling_app.urls')),
+
 ]
