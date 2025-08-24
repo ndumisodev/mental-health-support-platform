@@ -32,6 +32,18 @@ class ProfileViewSet(viewsets.ModelViewSet):
     
 
 
+class ClientProfileViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing client-specific profile data.
+
+    - retrieve: View client profile details
+    - create: Create client profile linked to a Profile
+    - update/partial_update: Update client-specific details
+    """
+
+    queryset = ClientProfile.objects.all()
+    serializer_class = ClientProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 
