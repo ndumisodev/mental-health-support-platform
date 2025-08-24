@@ -46,7 +46,24 @@ class ClientProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
+class CounselorApplicationViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for counselor applications.
 
+    - list: View all counselor applications (admin only)
+    - retrieve: View a specific application
+    - create: Submit an application to become a counselor
+    """
+
+    queryset = CounselorApplication.objects.all()
+    serializer_class = CounselorApplicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Restrict list view to admin users."""
+        if self.request.user.is_staff:
+            return self.queryset
+        return self.queryset.filter(profile__user=self.request.user)
 
 
 
