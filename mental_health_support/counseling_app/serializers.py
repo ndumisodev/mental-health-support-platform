@@ -28,7 +28,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ["id", "user", "role", "bio", "profile_pictuer"]
+        fields = ["id", "user", "role", "bio", "profile_pictuere"]
 
 
 class ClientProfileSerializer(serializers.ModelSerializer):
@@ -69,7 +69,7 @@ class CounselorApplicationSerializer(serializers.ModelSerializer):
     - status: Application status (read-only)
     - submitted_at: Timestamp when application was submitted (read-only)
     """
-    
+
     profile = ProfileSerializer(read_only=True)  # Show profile details, not editable
     profile_id = serializers.PrimaryKeyRelatedField(
         queryset=Profile.objects.all(),
