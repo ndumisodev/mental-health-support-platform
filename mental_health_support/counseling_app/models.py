@@ -61,3 +61,17 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
         Profile.objects.create(user=instance)  # client is default
     else:
         instance.profile.save()
+
+
+
+@receiver(post_save, sender=CounselorApplication)
+def update_profile_role_on_approval(sender, instance, **kwargs):
+    """
+    Automatically update the Profile role to 'counselor'
+    when a counselor application is approved.
+    """
+    if instance.status == CounselorApplication.STATUS_APPROVED:
+        profile = instance.profile
+        if profile.role != Profile.ROLE_COUNSELOR:
+            profile.role = Profile.ROLE_COUNSELOR
+            profile.save()
