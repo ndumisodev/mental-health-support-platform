@@ -86,6 +86,7 @@ class CounselorApplicationSerializer(serializers.ModelSerializer):
             "status",
             "specialization",
             "experience_years",
+            "availability",
             "certifications",
             "submitted_at"
         ]

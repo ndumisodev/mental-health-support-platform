@@ -45,6 +45,10 @@ class ClientProfileViewSet(viewsets.ModelViewSet):
     serializer_class = ClientProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_object(self):
+        # Ensure user is a client and has a ClientProfile
+        return ClientProfile.objects.get(profile__user=self.request.user)
+
 
 class CounselorApplicationViewSet(viewsets.ModelViewSet):
     """
@@ -64,6 +68,10 @@ class CounselorApplicationViewSet(viewsets.ModelViewSet):
         if self.request.user.is_staff:
             return self.queryset
         return self.queryset.filter(profile__user=self.request.user)
+    
+    def get_object(self):
+        # Ensure user is a counselor and has a CounselorProfile
+        return CounselorApplication.objects.get(profile__user=self.request.user)
 
 
 
