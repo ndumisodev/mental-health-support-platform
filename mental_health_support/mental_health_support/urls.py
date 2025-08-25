@@ -25,8 +25,6 @@ urlpatterns = [
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
 
-    path('hello/', hello_world, name='hello_world'),
-
     # App API endpoints
     path('api/', include('counseling_app.urls')),
 
