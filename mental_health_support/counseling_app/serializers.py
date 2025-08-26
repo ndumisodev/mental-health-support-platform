@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile, CounselorApplication, ClientProfile
+from .models import Profile, CounselorApplication, ClientProfile, Session, Availability, Profile
+from django.utils import timezone
+
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -91,3 +93,17 @@ class CounselorApplicationSerializer(serializers.ModelSerializer):
             "submitted_at"
         ]
         read_only_fields = ["status", "submitted_at"]
+
+
+class SessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Session
+        fields = "__all__"
+
+    def validate(self, data):
+        requested_datetime = data['datetime']
+
+        #date must be in the future
+        if requested_datetime <= timezone.now():
+            raise serializers.ValidationError("You cannot book a date from the past")
+        return data
