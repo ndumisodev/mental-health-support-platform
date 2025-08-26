@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.mail import send_mail
 
 
 class Profile(models.Model):
@@ -75,3 +76,38 @@ def update_profile_role_on_approval(sender, instance, **kwargs):
         if profile.role != Profile.ROLE_COUNSELOR:
             profile.role = Profile.ROLE_COUNSELOR
             profile.save()
+
+
+
+@receiver(post_save, sender=CounselorApplication)
+def update_profile_role_on_approval(sender, instance, **kwargs):
+    """
+    Automatically update the Profile role to 'counselor'
+    and send a notification email.
+    """
+    profile = instance.profile
+    user = profile.user
+
+    if instance.status == CounselorApplication.STATUS_APPROVED:
+        if profile.role != Profile.ROLE_COUNSELOR:
+            profile.role = Profile.ROLE_COUNSELOR
+            profile.save()
+        
+        # Send approval email
+        send_mail(
+            subject="Your Counselor Application has been Approved",
+            message="Congratulations! Your counselor application has been approved. You can now log in as a counselor.",
+            from_email="admin@yourdomain.com",
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+    elif instance.status == CounselorApplication.STATUS_REJECTED:
+        # Send rejection email
+        send_mail(
+            subject="Your Counselor Application has been Rejected",
+            message="Unfortunately, your counselor application has been rejected. Please contact support for more information.",
+            from_email="admin@yourdomain.com",
+            recipient_list=[user.email],
+            fail_silently=False,
+        )

@@ -13,7 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        field = ["id", "username", "email", "first_name", "last_name"]
+        fields = ["id", "username", "email", "first_name", "last_name"]
 
 class ProfileSerializer(serializers.ModelSerializer):
     """
@@ -28,7 +28,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ["id", "user", "role", "bio", "profile_pictuere"]
+        fields = ["id", "user", "role", "bio", "profile_picture"]
 
 
 class ClientProfileSerializer(serializers.ModelSerializer):
