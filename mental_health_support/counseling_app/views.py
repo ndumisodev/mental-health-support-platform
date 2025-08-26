@@ -1,8 +1,8 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from .models import Profile, ClientProfile, CounselorApplication
-from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer
+from .models import Profile, ClientProfile, CounselorApplication, Session
+from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer, SessionSerializer
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -72,6 +72,12 @@ class CounselorApplicationViewSet(viewsets.ModelViewSet):
     def get_object(self):
         # Ensure user is a counselor and has a CounselorProfile
         return CounselorApplication.objects.get(profile__user=self.request.user)
+    
+
+class SessionViewSet(viewsets.ModelViewSet):
+    queryset = Session.objects.all()
+    serializer_class = SessionSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 
