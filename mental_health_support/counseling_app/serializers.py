@@ -102,8 +102,25 @@ class SessionSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         requested_datetime = data['datetime']
+        counselor = data["counselor"]
 
         #date must be in the future
         if requested_datetime <= timezone.now():
             raise serializers.ValidationError("You cannot book a date from the past")
+        # return data
+    
+        #date must match counselor availability
+        day_of_week = requested_datetime.weekday()  #Monday=0, Sunday=0
+        time_only = requested_datetime.time()
+
+        Availability_exists = Availability.objects.filter(
+            counselor=counselor,
+            day_of_week=day_of_week,
+            start_time__lte=time_only,
+            end_time__gt=time_only
+        ).exists()
+
+        if not Availability_exists:
+            raise serializers.ValidationError("This counselor is not available at this time.")
+        
         return data
