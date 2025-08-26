@@ -96,34 +96,60 @@ class CounselorApplicationSerializer(serializers.ModelSerializer):
 
 
 class SessionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling session booking between clients and counselors.
+
+    Validations performed:
+    1. The requested datetime must be in the future.
+    2. The requested datetime must match the counselor's availability schedule.
+    3. Prevents double booking by checking for existing pending or confirmed sessions
+       at the same time for the same counselor.
+
+    Fields:
+        counselor (ForeignKey): The counselor being booked.
+        client (ForeignKey): The client making the booking.
+        datetime (DateTimeField): The scheduled date and time of the session.
+        status (CharField): The current status of the session (pending, confirmed, completed).
+    """
     class Meta:
         model = Session
         fields = "__all__"
 
     def validate(self, data):
+        """
+        Custom validation for booking rules.
+
+        Raises:
+            serializers.ValidationError: If:
+                - The booking date is in the past.
+                - The counselor is not available at the requested time.
+                - The time slot is already booked.
+        
+        Returns:
+            dict: The validated booking data.
+        """
         requested_datetime = data['datetime']
         counselor = data["counselor"]
 
-        #date must be in the future
+        # Date must be in the future
         if requested_datetime <= timezone.now():
             raise serializers.ValidationError("You cannot book a date from the past")
-        # return data
     
-        #date must match counselor availability
-        day_of_week = requested_datetime.weekday()  #Monday=0, Sunday=0
+        # Date must match counselor availability
+        day_of_week = requested_datetime.weekday()  # Monday=0, Sunday=6
         time_only = requested_datetime.time()
 
-        Availability_exists = Availability.objects.filter(
+        availability_exists = Availability.objects.filter(
             counselor=counselor,
             day_of_week=day_of_week,
             start_time__lte=time_only,
             end_time__gt=time_only
         ).exists()
 
-        if not Availability_exists:
+        if not availability_exists:
             raise serializers.ValidationError("This counselor is not available at this time.")
         
-        #preventing double booking
+        # Preventing double booking
         clash_exists = Session.objects.filter(
             counselor=counselor,
             datetime=requested_datetime,
@@ -131,6 +157,6 @@ class SessionSerializer(serializers.ModelSerializer):
         ).exists()
 
         if clash_exists:
-            raise serializers.ValidationError("This time slot is alrady booked.")
+            raise serializers.ValidationError("This time slot is already booked.")
         
         return data
