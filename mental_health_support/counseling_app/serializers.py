@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile, CounselorApplication, ClientProfile
+from .models import Profile, CounselorApplication, ClientProfile, Session, Availability, Profile
+from django.utils import timezone
+
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -13,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        field = ["id", "username", "email", "first_name", "last_name"]
+        fields = ["id", "username", "email", "first_name", "last_name"]
 
 class ProfileSerializer(serializers.ModelSerializer):
     """
@@ -28,7 +30,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ["id", "user", "role", "bio", "profile_pictuere"]
+        fields = ["id", "user", "role", "bio", "profile_picture"]
 
 
 class ClientProfileSerializer(serializers.ModelSerializer):
@@ -91,3 +93,70 @@ class CounselorApplicationSerializer(serializers.ModelSerializer):
             "submitted_at"
         ]
         read_only_fields = ["status", "submitted_at"]
+
+
+class SessionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling session booking between clients and counselors.
+
+    Validations performed:
+    1. The requested datetime must be in the future.
+    2. The requested datetime must match the counselor's availability schedule.
+    3. Prevents double booking by checking for existing pending or confirmed sessions
+       at the same time for the same counselor.
+
+    Fields:
+        counselor (ForeignKey): The counselor being booked.
+        client (ForeignKey): The client making the booking.
+        datetime (DateTimeField): The scheduled date and time of the session.
+        status (CharField): The current status of the session (pending, confirmed, completed).
+    """
+    class Meta:
+        model = Session
+        fields = "__all__"
+
+    def validate(self, data):
+        """
+        Custom validation for booking rules.
+
+        Raises:
+            serializers.ValidationError: If:
+                - The booking date is in the past.
+                - The counselor is not available at the requested time.
+                - The time slot is already booked.
+        
+        Returns:
+            dict: The validated booking data.
+        """
+        requested_datetime = data['datetime']
+        counselor = data["counselor"]
+
+        # Date must be in the future
+        if requested_datetime <= timezone.now():
+            raise serializers.ValidationError("You cannot book a date from the past")
+    
+        # Date must match counselor availability
+        day_of_week = requested_datetime.weekday()  # Monday=0, Sunday=6
+        time_only = requested_datetime.time()
+
+        availability_exists = Availability.objects.filter(
+            counselor=counselor,
+            day_of_week=day_of_week,
+            start_time__lte=time_only,
+            end_time__gt=time_only
+        ).exists()
+
+        if not availability_exists:
+            raise serializers.ValidationError("This counselor is not available at this time.")
+        
+        # Preventing double booking
+        clash_exists = Session.objects.filter(
+            counselor=counselor,
+            datetime=requested_datetime,
+            status__in=[Session.STATUS_PENDING, Session.STATUS_CONFIRMED]
+        ).exists()
+
+        if clash_exists:
+            raise serializers.ValidationError("This time slot is already booked.")
+        
+        return data

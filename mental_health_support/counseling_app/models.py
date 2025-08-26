@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.mail import send_mail
 
 
 class Profile(models.Model):
@@ -55,6 +56,68 @@ class ClientProfile(models.Model):
         return f"Client Profile for {self.profile.user.username}"
 
 
+class Availability(models.Model):
+    counselor = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': Profile.ROLE_COUNSELOR},
+        related_name="availabilities"
+    )
+    day_of_week = models.IntegerField(
+        choices=[
+            (0, "Monday"),
+            (1, "Tuesday"),
+            (2, "Wednesday"),
+            (3, "Thursday"),
+            (4, "Friday"),
+            (5, "Saturday"),
+            (6, "Sunday"),
+        ]
+    )
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    def __str__(self):
+        return f"{self.counselor.user.username} - {self.get_day_of_week_display()} {self.start_time}-{self.end_time}"
+
+
+class Session(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_CONFIRMED = "confirmed"
+    STATUS_COMPLETED = "completed"
+    STATUS_CANCELLED = "cancelled"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_CONFIRMED, "Confirmed"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    counselor = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': Profile.ROLE_COUNSELOR},
+        related_name="sessions_as_counselor"
+    )
+    client = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': Profile.ROLE_CLIENT},
+        related_name="sessions_as_client"
+    )
+    datetime = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.client.user.username} with {self.counselor.user.username} at {self.datetime}"
+
+
+
+
+
+
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -75,3 +138,38 @@ def update_profile_role_on_approval(sender, instance, **kwargs):
         if profile.role != Profile.ROLE_COUNSELOR:
             profile.role = Profile.ROLE_COUNSELOR
             profile.save()
+
+
+
+@receiver(post_save, sender=CounselorApplication)
+def update_profile_role_on_approval(sender, instance, **kwargs):
+    """
+    Automatically update the Profile role to 'counselor'
+    and send a notification email.
+    """
+    profile = instance.profile
+    user = profile.user
+
+    if instance.status == CounselorApplication.STATUS_APPROVED:
+        if profile.role != Profile.ROLE_COUNSELOR:
+            profile.role = Profile.ROLE_COUNSELOR
+            profile.save()
+        
+        # Send approval email
+        send_mail(
+            subject="Your Counselor Application has been Approved",
+            message="Congratulations! Your counselor application has been approved. You can now log in as a counselor.",
+            from_email="admin@yourdomain.com",
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+    elif instance.status == CounselorApplication.STATUS_REJECTED:
+        # Send rejection email
+        send_mail(
+            subject="Your Counselor Application has been Rejected",
+            message="Unfortunately, your counselor application has been rejected. Please contact support for more information.",
+            from_email="admin@yourdomain.com",
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
