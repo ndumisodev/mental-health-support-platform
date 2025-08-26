@@ -160,3 +160,52 @@ class SessionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This time slot is already booked.")
         
         return data
+
+
+from rest_framework import serializers
+from .models import Review, Session
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = [
+            'id',
+            'session',
+            'reviewer',
+            'counselor',
+            'rating',
+            'comment',
+            'created_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'reviewer']
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        user = request.user
+        session = attrs.get('session')
+
+        #Ensure session exists
+        if not session:
+            raise serializers.ValidationError("Session is required.")
+
+        #Check session is completed
+        if session.status != 'completed':
+            raise serializers.ValidationError("You can only review a completed session.")
+
+        #Reviewer must be the session's client
+        if session.client != user:
+            raise serializers.ValidationError("You can only review sessions you attended as a client.")
+
+        #Counselor in review must match session's counselor
+        if attrs.get('counselor') != session.counselor:
+            raise serializers.ValidationError("Counselor does not match the session's counselor.")
+
+        #Checking if a review already exists for this session
+        if Review.objects.filter(session=session).exists():
+            raise serializers.ValidationError("This session already has a review.")
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data['reviewer'] = self.context['request'].user
+        return super().create(validated_data)
