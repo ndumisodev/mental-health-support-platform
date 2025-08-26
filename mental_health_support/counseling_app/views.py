@@ -75,9 +75,30 @@ class CounselorApplicationViewSet(viewsets.ModelViewSet):
     
 
 class SessionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing counseling session bookings.
+
+    Endpoints:
+        - POST /sessions/:
+            Create a new session booking. Automatically associates the
+            authenticated client with the booking.
+        - GET /sessions/{id}/:
+            Retrieve details for a specific session.
+        - PATCH /sessions/{id}/status/:
+            Update the status of a session (pending, confirmed, completed).
+    
+    Permissions:
+        - Only authenticated users can access this endpoint.
+
+    Attributes:
+        queryset (QuerySet): All session records.
+        serializer_class (Serializer): SessionSerializer for validation and data handling.
+        permission_classes (list): Restricts access to authenticated users only.
+    """
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
     permission_classes = [permissions.IsAuthenticated]
+
 
 
 
