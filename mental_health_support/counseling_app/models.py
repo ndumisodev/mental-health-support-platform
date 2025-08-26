@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
+from django.conf import settings
 
 
 class Profile(models.Model):
@@ -114,6 +115,37 @@ class Session(models.Model):
         return f"{self.client.user.username} with {self.counselor.user.username} at {self.datetime}"
 
 
+class Review(models.Model):
+    session = models.OneToOneField(
+        'Session',
+        on_delete=models.CASCADE,
+        related_name='review'
+    )
+    reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reviews_given'
+    )
+    counselor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reviews_received'
+    )
+    rating = models.PositiveSmallIntegerField()
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(rating__gte=1, rating__lte=5),
+                name='rating_between_1_and_5'
+            )
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.reviewer} → {self.counselor} ({self.rating}⭐)"
 
 
 
