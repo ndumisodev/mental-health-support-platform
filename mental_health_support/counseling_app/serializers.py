@@ -123,4 +123,14 @@ class SessionSerializer(serializers.ModelSerializer):
         if not Availability_exists:
             raise serializers.ValidationError("This counselor is not available at this time.")
         
+        #preventing double booking
+        clash_exists = Session.objects.filter(
+            counselor=counselor,
+            datetime=requested_datetime,
+            status__in=[Session.STATUS_PENDING, Session.STATUS_CONFIRMED]
+        ).exists()
+
+        if clash_exists:
+            raise serializers.ValidationError("This time slot is alrady booked.")
+        
         return data
