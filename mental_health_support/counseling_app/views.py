@@ -1,8 +1,8 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from .models import Profile, ClientProfile, CounselorApplication, Session
-from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer, SessionSerializer
+from .models import Profile, ClientProfile, CounselorApplication, Session, Review
+from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer, SessionSerializer, ReviewSerializer
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -169,7 +169,44 @@ class SessionViewSet(viewsets.ModelViewSet):
 
 
 
+class IsReviewerOrReadOnly(permissions.BasePermission):
+    """
+    Custom permission to allow only the reviewer to edit/delete their review.
+    Others can only read.
+    """
+    def has_object_permission(self, request, view, obj):
+        # Safe methods like GET are always allowed
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        # Only reviewer can modify
+        return obj.reviewer == request.user
 
+class ReviewViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for creating, viewing, and editing reviews.
+    """
+    queryset = Review.objects.all().select_related('session', 'counselor', 'reviewer')
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated, IsReviewerOrReadOnly]
+
+    def get_queryset(self):
+        """
+        Limit reviews returned:
+        - Counselors see reviews about them
+        - Clients see reviews they wrote
+        - Admin sees all reviews
+        """
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset
+        return self.queryset.filter(
+            reviewer=user
+        ) | self.queryset.filter(
+            counselor=user
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(reviewer=self.request.user)
 
 
 
