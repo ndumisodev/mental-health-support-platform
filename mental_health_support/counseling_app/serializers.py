@@ -1,6 +1,7 @@
 from rest_framework import serializers
+from .models import Review, Session
 from django.contrib.auth.models import User
-from .models import Profile, CounselorApplication, ClientProfile, Session, Availability, Profile
+from .models import Profile, CounselorApplication, ClientProfile, Session, Availability, Profile, ChatRoom, Message
 from django.utils import timezone
 
 
@@ -162,8 +163,6 @@ class SessionSerializer(serializers.ModelSerializer):
         return data
 
 
-from rest_framework import serializers
-from .models import Review, Session
 
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
@@ -208,4 +207,46 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['reviewer'] = self.context['request'].user
+        return super().create(validated_data)
+    
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer(read_only=True)  # Show sender details
+    sender_id = serializers.PrimaryKeyRelatedField(
+        queryset=Profile.objects.all(),
+        source='sender',
+        write_only=True
+    )
+
+    class Meta:
+        model = Message
+        fields = ['id', 'room', 'sender', 'sender_id', 'content', 'created_at']
+        read_only_fields = ['id', 'created_at', 'room']
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        session_id = self.context.get('session_id')
+
+        # Get session and room
+        try:
+            session = Session.objects.get(pk=session_id)
+        except Session.DoesNotExist:
+            raise serializers.ValidationError("Session does not exist.")
+
+        # Ensure the user is part of the session
+        if request.user.profile not in [session.client, session.counselor]:
+            raise serializers.ValidationError("You are not a participant in this session.")
+
+        return attrs
+
+    def create(self, validated_data):
+        session_id = self.context.get('session_id')
+        session = Session.objects.get(pk=session_id)
+
+        # Lazy-create the ChatRoom if it doesn't exist
+        room, _ = ChatRoom.objects.get_or_create(session=session)
+
+        validated_data['room'] = room
+        validated_data['sender'] = self.context['request'].user.profile
+
         return super().create(validated_data)
