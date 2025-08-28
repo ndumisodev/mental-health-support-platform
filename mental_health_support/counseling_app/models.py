@@ -149,6 +149,36 @@ class Review(models.Model):
 
 
 
+class ChatRoom(models.Model):
+    session = models.OneToOneField(
+        Session,
+        on_delete=models.CASCADE,
+        related_name='chat_room'
+    )
+
+    def __str__(self):
+        return f"ChatRoom for Session {self.session.id}"
+
+
+class Message(models.Model):
+    room = models.ForeignKey(
+        ChatRoom,
+        on_delete=models.CASCADE,
+        related_name='messages'
+    )
+    sender = models.ForeignKey(
+        Profile,  # Uses Profile since that's store client/counselor info
+        on_delete=models.CASCADE,
+        related_name='sent_messages'
+    )
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Message from {self.sender.user.username} in Room {self.room.id}"
+
+
+
 
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):

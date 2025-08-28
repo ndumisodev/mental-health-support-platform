@@ -1,6 +1,7 @@
 from rest_framework import serializers
+from .models import Review, Session
 from django.contrib.auth.models import User
-from .models import Profile, CounselorApplication, ClientProfile, Session, Availability, Profile
+from .models import Profile, CounselorApplication, ClientProfile, Session, Availability, Profile, ChatRoom, Message
 from django.utils import timezone
 
 
@@ -160,3 +161,92 @@ class SessionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This time slot is already booked.")
         
         return data
+
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = [
+            'id',
+            'session',
+            'reviewer',
+            'counselor',
+            'rating',
+            'comment',
+            'created_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'reviewer']
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        user = request.user
+        session = attrs.get('session')
+
+        #Ensure session exists
+        if not session:
+            raise serializers.ValidationError("Session is required.")
+
+        #Check session is completed
+        if session.status != 'completed':
+            raise serializers.ValidationError("You can only review a completed session.")
+
+        #Reviewer must be the session's client
+        if session.client != user:
+            raise serializers.ValidationError("You can only review sessions you attended as a client.")
+
+        #Counselor in review must match session's counselor
+        if attrs.get('counselor') != session.counselor:
+            raise serializers.ValidationError("Counselor does not match the session's counselor.")
+
+        #Checking if a review already exists for this session
+        if Review.objects.filter(session=session).exists():
+            raise serializers.ValidationError("This session already has a review.")
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data['reviewer'] = self.context['request'].user
+        return super().create(validated_data)
+    
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer(read_only=True)  # Show sender details
+    sender_id = serializers.PrimaryKeyRelatedField(
+        queryset=Profile.objects.all(),
+        source='sender',
+        write_only=True
+    )
+
+    class Meta:
+        model = Message
+        fields = ['id', 'room', 'sender', 'sender_id', 'content', 'created_at']
+        read_only_fields = ['id', 'created_at', 'room']
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        session_id = self.context.get('session_id')
+
+        # Get session and room
+        try:
+            session = Session.objects.get(pk=session_id)
+        except Session.DoesNotExist:
+            raise serializers.ValidationError("Session does not exist.")
+
+        # Ensure the user is part of the session
+        if request.user.profile not in [session.client, session.counselor]:
+            raise serializers.ValidationError("You are not a participant in this session.")
+
+        return attrs
+
+    def create(self, validated_data):
+        session_id = self.context.get('session_id')
+        session = Session.objects.get(pk=session_id)
+
+        # Lazy-create the ChatRoom if it doesn't exist
+        room, _ = ChatRoom.objects.get_or_create(session=session)
+
+        validated_data['room'] = room
+        validated_data['sender'] = self.context['request'].user.profile
+
+        return super().create(validated_data)

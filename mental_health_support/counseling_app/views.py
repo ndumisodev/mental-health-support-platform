@@ -1,8 +1,9 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from .models import Profile, ClientProfile, CounselorApplication, Session
-from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer, SessionSerializer
+from django.shortcuts import get_object_or_404
+from .models import Profile, ClientProfile, CounselorApplication, Session, Review, ChatRoom, Message
+from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer, SessionSerializer, ReviewSerializer, MessageSerializer
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -169,9 +170,65 @@ class SessionViewSet(viewsets.ModelViewSet):
 
 
 
+class IsReviewerOrReadOnly(permissions.BasePermission):
+    """
+    Custom permission to allow only the reviewer to edit/delete their review.
+    Others can only read.
+    """
+    def has_object_permission(self, request, view, obj):
+        # Safe methods like GET are always allowed
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        # Only reviewer can modify
+        return obj.reviewer == request.user
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for creating, viewing, and editing reviews.
+    """
+    queryset = Review.objects.all().select_related('session', 'counselor', 'reviewer')
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated, IsReviewerOrReadOnly]
+
+    def get_queryset(self):
+        """
+        Limit reviews returned:
+        - Counselors see reviews about them
+        - Clients see reviews they wrote
+        - Admin sees all reviews
+        """
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset
+        return self.queryset.filter(
+            reviewer=user
+        ) | self.queryset.filter(
+            counselor=user
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(reviewer=self.request.user)
 
 
+class MessageViewSet(viewsets.ModelViewSet):
+    serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        session_id = self.kwargs['session_id']
+        session = get_object_or_404(Session, pk=session_id)
+
+        # Ensure only participants can view messages
+        if self.request.user.profile not in [session.client, session.counselor]:
+            return Message.objects.none()
+
+        room, _ = ChatRoom.objects.get_or_create(session=session)
+        return Message.objects.filter(room=room).order_by('created_at')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['session_id'] = self.kwargs['session_id']
+        return context
 
 
 
