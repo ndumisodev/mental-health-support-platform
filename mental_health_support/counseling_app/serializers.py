@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from .models import Review, Session
 from django.contrib.auth.models import User
-from .models import Profile, CounselorApplication, ClientProfile, Session, Availability, Profile, ChatRoom, Message
+from .models import Profile, CounselorApplication, ClientProfile, Session, Availability, Profile, ChatRoom, Message, EmergencyRequest
 from django.utils import timezone
+import requests
 
 
 class UserSerializer(serializers.ModelSerializer):
