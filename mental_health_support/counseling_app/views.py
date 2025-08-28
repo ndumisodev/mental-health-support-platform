@@ -2,8 +2,10 @@ from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
-from .models import Profile, ClientProfile, CounselorApplication, Session, Review, ChatRoom, Message
-from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer, SessionSerializer, ReviewSerializer, MessageSerializer
+from .models import AuditLog, Profile, ClientProfile, CounselorApplication, Session, Review, ChatRoom, Message, EmergencyRequest
+from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer, SessionSerializer, ReviewSerializer, MessageSerializer, EmergencyRequestSerializer, AuditLogSerializer
+
+from rest_framework.response import Response
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -231,6 +233,35 @@ class MessageViewSet(viewsets.ModelViewSet):
         return context
 
 
+class EmergencyRequestViewSet(viewsets.ModelViewSet):
+    queryset = EmergencyRequest.objects.all().select_related('user')
+    serializer_class = EmergencyRequestSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            # Only staff can view emergencies
+            permission_classes = [permissions.IsAdminUser]
+        else:
+            # Clients can create emergencies
+            permission_classes = [permissions.IsAuthenticated]
+        return [perm() for perm in permission_classes]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset.order_by('-created_at')
+        # Clients cannot view others' emergencies
+        return EmergencyRequest.objects.none()
+
+
+
+class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Admin-only endpoint for viewing audit logs.
+    """
+    queryset = AuditLog.objects.all().select_related('user')
+    serializer_class = AuditLogSerializer
+    permission_classes = [permissions.IsAdminUser]
 
 
 # @api_view(['GET'])

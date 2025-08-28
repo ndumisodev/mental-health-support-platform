@@ -198,6 +198,24 @@ class EmergencyRequest(models.Model):
 
     def __str__(self):
         return f"Emergency from {self.user.username} ({self.status})"
+    
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="audit_logs"
+    )
+    action = models.CharField(max_length=255)
+    entity = models.CharField(max_length=255, blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.user.username} | {self.action} | {self.entity} | {self.timestamp}"
+
 
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):

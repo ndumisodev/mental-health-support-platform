@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Review, Session
 from django.contrib.auth.models import User
-from .models import Profile, CounselorApplication, ClientProfile, Session, Availability, Profile, ChatRoom, Message, EmergencyRequest
+from .models import Profile, CounselorApplication,AuditLog, ClientProfile, Session, Availability, Profile, ChatRoom, Message, EmergencyRequest
 from django.utils import timezone
 import requests
 
@@ -251,3 +251,49 @@ class MessageSerializer(serializers.ModelSerializer):
         validated_data['sender'] = self.context['request'].user.profile
 
         return super().create(validated_data)
+    
+
+SADAG_API_URL = "https://sadag.org/api/get_hotlines"
+class EmergencyRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmergencyRequest
+        fields = ["id", "user", "details", "status", "hotline_info", "created_at"]
+        read_only_fields = ["id", "user", "status", "hotline_info", "created_at"]
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        if not hasattr(user, "profile") or user.profile.role != "client":
+            raise serializers.ValidationError("Only clients can create emergency requests.")
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+
+        # Call SADAG API for hotline info
+        hotline_info = {}
+        try:
+            response = requests.get(SADAG_API_URL, timeout=5)
+            if response.status_code == 200:
+                hotline_info = response.json()
+        except requests.RequestException:
+            # Fail silently; still create the emergency request
+            hotline_info = {"error": "Could not fetch hotline info at this time."}
+
+        validated_data["user"] = user
+        validated_data["hotline_info"] = hotline_info
+
+        return super().create(validated_data)
+    
+
+class UserBriefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email"]
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    user = UserBriefSerializer(read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = ["id", "user", "action", "entity", "timestamp"]
+        read_only_fields = ["id", "user", "timestamp"]
