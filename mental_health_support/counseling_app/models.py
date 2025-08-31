@@ -178,6 +178,43 @@ class Message(models.Model):
         return f"Message from {self.sender.user.username} in Room {self.room.id}"
 
 
+class EmergencyRequest(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_RESOLVED = "resolved"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_RESOLVED, "Resolved"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="emergency_requests"
+    )
+    details = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    hotline_info = models.JSONField(null=True, blank=True)  # Stores SADAG hotline info
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Emergency from {self.user.username} ({self.status})"
+    
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="audit_logs"
+    )
+    action = models.CharField(max_length=255)
+    entity = models.CharField(max_length=255, blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.user.username} | {self.action} | {self.entity} | {self.timestamp}"
 
 
 @receiver(post_save, sender=User)
