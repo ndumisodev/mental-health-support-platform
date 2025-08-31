@@ -297,3 +297,11 @@ class AuditLogSerializer(serializers.ModelSerializer):
         model = AuditLog
         fields = ["id", "user", "action", "entity", "timestamp"]
         read_only_fields = ["id", "user", "timestamp"]
+
+class AvailabilitySerializer(serializers.ModelSerializer):
+    counselor_name = serializers.CharField(source='counselor.user.username', read_only=True)
+    day_of_week_display = serializers.CharField(source='get_day_of_week_display', read_only=True)
+
+    class Meta:
+        model = Availability
+        fields = ['id', 'counselor', 'counselor_name', 'day_of_week', 'day_of_week_display', 'start_time', 'end_time']

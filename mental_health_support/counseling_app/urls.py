@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProfileViewSet, ClientProfileViewSet, CounselorApplicationViewSet,SessionViewSet, ReviewViewSet, MessageViewSet, EmergencyRequestViewSet
+from .views import ProfileViewSet, AvailabilityListView, ClientProfileViewSet, CounselorApplicationViewSet,SessionViewSet, ReviewViewSet, MessageViewSet, EmergencyRequestViewSet,AuditLogViewSet
 
 router = DefaultRouter()
 router.register(r'profiles', ProfileViewSet, basename='profile')
@@ -19,4 +19,5 @@ urlpatterns = [
     path('chat/<int:session_id>/messages/', 
          MessageViewSet.as_view({'get': 'list', 'post': 'create'}),
          name='chat-messages'),
+    path('availability/', AvailabilityListView.as_view(), name='availability-list'),
 ]

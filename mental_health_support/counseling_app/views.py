@@ -2,9 +2,9 @@ from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
-from .models import AuditLog, Profile, ClientProfile, CounselorApplication, Session, Review, ChatRoom, Message, EmergencyRequest
-from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer, SessionSerializer, ReviewSerializer, MessageSerializer, EmergencyRequestSerializer, AuditLogSerializer
-
+from .models import AuditLog, Profile, ClientProfile, CounselorApplication, Session, Review, ChatRoom, Message, EmergencyRequest, Availability
+from .serializers import ProfileSerializer, ClientProfileSerializer, CounselorApplicationSerializer, SessionSerializer, ReviewSerializer, MessageSerializer, EmergencyRequestSerializer, AuditLogSerializer, AvailabilitySerializer
+from rest_framework import generics
 from rest_framework.response import Response
 
 
@@ -264,7 +264,7 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAdminUser]
 
 
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def hello_world(request):
-#     return Response({"message": f"Hello, {request.user.username}!"})
+class AvailabilityListView(generics.ListAPIView):
+    queryset = Availability.objects.all()
+    serializer_class = AvailabilitySerializer
+
