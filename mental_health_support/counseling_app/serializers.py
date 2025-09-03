@@ -166,6 +166,29 @@ class SessionSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Review model.
+
+    Purpose:
+        - Allows clients to submit reviews for completed sessions.
+        - Ensures a session can only be reviewed once.
+        - Enforces that only the client from the session can review the counselor.
+
+    Validations:
+        - Session must be completed before review.
+        - Reviewer must be the session's client.
+        - Counselor in review must match session's counselor.
+        - No duplicate reviews for the same session.
+
+    Fields:
+        - session: The counseling session being reviewed.
+        - reviewer: The client submitting the review (set automatically).
+        - counselor: The counselor being reviewed.
+        - rating: Numeric rating score.
+        - comment: Optional text feedback.
+        - created_at: Timestamp when review was created (read-only).
+    """
+
     class Meta:
         model = Review
         fields = [
@@ -212,6 +235,25 @@ class ReviewSerializer(serializers.ModelSerializer):
     
 
 class MessageSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Message model.
+
+    Purpose:
+        - Handles sending and retrieving chat messages within a session.
+        - Ensures only participants of a session can send messages.
+
+    Validations:
+        - The session must exist.
+        - Sender must be a participant (client or counselor) in the session.
+
+    Fields:
+        - room: The chat room linked to the session (read-only).
+        - sender: The profile of the message sender (nested, read-only).
+        - sender_id: The sender’s Profile ID (write-only).
+        - content: The text message.
+        - created_at: Timestamp of message creation (read-only).
+    """
+
     sender = ProfileSerializer(read_only=True)  # Show sender details
     sender_id = serializers.PrimaryKeyRelatedField(
         queryset=Profile.objects.all(),
@@ -255,6 +297,28 @@ class MessageSerializer(serializers.ModelSerializer):
 
 SADAG_API_URL = "https://sadag.org/api/get_hotlines"
 class EmergencyRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the EmergencyRequest model.
+
+    Purpose:
+        - Allows clients to request urgent help.
+        - Automatically fetches hotline information from the SADAG API.
+
+    Validations:
+        - Only clients can create emergency requests.
+
+    Behavior:
+        - On creation, makes a request to the SADAG API to retrieve hotline details.
+        - If the API call fails, an error message is stored in `hotline_info`.
+
+    Fields:
+        - user: The client making the request (set automatically, read-only).
+        - details: Description of the emergency.
+        - status: Status of the request (read-only).
+        - hotline_info: Emergency hotline contact information (read-only).
+        - created_at: Timestamp of request creation (read-only).
+    """
+
     class Meta:
         model = EmergencyRequest
         fields = ["id", "user", "details", "status", "hotline_info", "created_at"]
@@ -291,6 +355,19 @@ class UserBriefSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "email"]
 
 class AuditLogSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the AuditLog model.
+
+    Purpose:
+        - Read-only serializer for admin to view recorded actions.
+
+    Fields:
+        - user: The user who performed the action (nested, read-only).
+        - action: Description of what happened.
+        - entity: The affected entity name.
+        - timestamp: When the action was logged (read-only).
+    """
+
     user = UserBriefSerializer(read_only=True)
 
     class Meta:
@@ -299,6 +376,21 @@ class AuditLogSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "timestamp"]
 
 class AvailabilitySerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Availability model.
+
+    Purpose:
+        - Represents a counselor's available time slots for sessions.
+
+    Fields:
+        - counselor: The counselor’s profile.
+        - counselor_name: The counselor’s username (read-only).
+        - day_of_week: Numeric representation of the day (0=Monday, 6=Sunday).
+        - day_of_week_display: Human-readable day name (read-only).
+        - start_time: Start of availability period.
+        - end_time: End of availability period.
+    """
+    
     counselor_name = serializers.CharField(source='counselor.user.username', read_only=True)
     day_of_week_display = serializers.CharField(source='get_day_of_week_display', read_only=True)
 
