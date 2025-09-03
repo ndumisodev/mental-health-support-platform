@@ -213,6 +213,23 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class MessageViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for sending and retrieving chat messages within a counseling session.
+
+    Permissions:
+        - Only authenticated users can send or view messages.
+        - Only participants of the session (client and counselor) can access messages.
+
+    Endpoints:
+        - GET /sessions/{session_id}/messages/:
+            Retrieves all messages in the session chat room, ordered by creation time.
+        - POST /sessions/{session_id}/messages/:
+            Sends a new message to the session's chat room.
+
+    Queryset:
+        - Messages are filtered by session_id and limited to participants only.
+    """
+    
     serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -234,6 +251,27 @@ class MessageViewSet(viewsets.ModelViewSet):
 
 
 class EmergencyRequestViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing emergency requests.
+
+    Permissions:
+        - Authenticated clients can create new emergency requests.
+        - Only admin/staff can list or retrieve emergency requests.
+        - Clients cannot view or edit emergencies they did not create.
+
+    Endpoints:
+        - POST /emergencies/:
+            Create a new emergency request with details.
+        - GET /emergencies/ (admin only):
+            Retrieve a list of all emergencies.
+        - GET /emergencies/{id}/ (admin only):
+            Retrieve details of a specific emergency request.
+
+    Queryset:
+        - Ordered by most recent for admin.
+        - Clients see no emergencies unless explicitly given access.
+    """
+     
     queryset = EmergencyRequest.objects.all().select_related('user')
     serializer_class = EmergencyRequestSerializer
 
@@ -257,14 +295,46 @@ class EmergencyRequestViewSet(viewsets.ModelViewSet):
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Admin-only endpoint for viewing audit logs.
+    API endpoint for viewing system audit logs (admin only).
+
+    Purpose:
+        - Used by administrators to track user actions within the platform.
+        - Each log entry contains:
+            * user who performed the action
+            * action description
+            * affected entity
+            * timestamp
+
+    Permissions:
+        - Only admin users can view logs.
+
+    Endpoints:
+        - GET /audit-logs/:
+            Retrieve all audit logs.
+        - GET /audit-logs/{id}/:
+            Retrieve details of a specific audit log entry.
     """
+     
     queryset = AuditLog.objects.all().select_related('user')
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAdminUser]
 
 
 class AvailabilityListView(generics.ListAPIView):
+    """
+    API endpoint to retrieve a list of all counselor availability slots.
+
+    Purpose:
+        - Allows clients to view available days and time ranges for booking sessions.
+
+    Permissions:
+        - Accessible to any authenticated user.
+
+    Endpoints:
+        - GET /availabilities/:
+            Retrieve all counselor availability records.
+    """
+    
     queryset = Availability.objects.all()
     serializer_class = AvailabilitySerializer
 
