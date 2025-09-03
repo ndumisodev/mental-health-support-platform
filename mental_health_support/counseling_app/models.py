@@ -7,6 +7,16 @@ from django.conf import settings
 
 
 class Profile(models.Model):
+    """
+    Stores additional user profile information for both clients and counselors.
+
+    Attributes:
+        user (User): One-to-one link to Django's built-in User model.
+        role (str): User's role in the system ('client' or 'counselor').
+        bio (str): Short biography or profile description.
+        profile_picture (Image): Optional profile picture.
+    """
+
     ROLE_CLIENT = "client"
     ROLE_COUNSELOR = "counselor"
 
@@ -25,6 +35,19 @@ class Profile(models.Model):
 
 
 class CounselorApplication(models.Model):
+    """
+    Represents a counselor's application to join the platform.
+
+    Attributes:
+        profile (Profile): Linked profile of the applying user.
+        status (str): Application status (pending, approved, rejected).
+        specialization (str): Counselor's specialization.
+        experience_years (int): Years of counseling experience.
+        availability (dict): JSON field with available days/times.
+        certifications (str): Text description of qualifications.
+        submitted_at (datetime): Timestamp of submission.
+    """
+
     STATUS_PENDING = "pending"
     STATUS_APPROVED = "approved"
     STATUS_REJECTED = "rejected"
@@ -48,6 +71,16 @@ class CounselorApplication(models.Model):
 
 
 class ClientProfile(models.Model):
+    """
+    Stores additional details specific to client users.
+
+    Attributes:
+        profile (Profile): Linked profile of the client.
+        age (int): Client's age.
+        gender (str): Client's gender.
+        preferences (str): Optional preferences for counseling sessions.
+    """
+
     profile = models.OneToOneField(Profile, on_delete=models.CASCADE)
     age = models.PositiveIntegerField()
     gender = models.CharField(max_length=50)
@@ -58,6 +91,16 @@ class ClientProfile(models.Model):
 
 
 class Availability(models.Model):
+    """
+    Represents a counselor's recurring weekly availability slot.
+
+    Attributes:
+        counselor (Profile): Counselor who owns this availability.
+        day_of_week (int): Day of the week (0=Monday, 6=Sunday).
+        start_time (time): Start time of the slot.
+        end_time (time): End time of the slot.
+    """
+
     counselor = models.ForeignKey(
         Profile,
         on_delete=models.CASCADE,
@@ -83,6 +126,17 @@ class Availability(models.Model):
 
 
 class Session(models.Model):
+    """
+    Represents a booked counseling session between a client and a counselor.
+
+    Attributes:
+        counselor (Profile): Counselor for the session.
+        client (Profile): Client attending the session.
+        datetime (datetime): Scheduled session date and time.
+        status (str): Session status (pending, confirmed, completed, cancelled).
+        notes (str): Optional notes for the session.
+    """
+
     STATUS_PENDING = "pending"
     STATUS_CONFIRMED = "confirmed"
     STATUS_COMPLETED = "completed"
@@ -116,6 +170,18 @@ class Session(models.Model):
 
 
 class Review(models.Model):
+    """
+    Stores a review and rating for a completed counseling session.
+
+    Attributes:
+        session (Session): The session being reviewed.
+        reviewer (User): The user who wrote the review.
+        counselor (User): The counselor being reviewed.
+        rating (int): Star rating (1–5).
+        comment (str): Optional review text.
+        created_at (datetime): Timestamp of review creation.
+    """
+
     session = models.OneToOneField(
         'Session',
         on_delete=models.CASCADE,
@@ -150,6 +216,13 @@ class Review(models.Model):
 
 
 class ChatRoom(models.Model):
+    """
+    Chat room for a specific counseling session.
+
+    Attributes:
+        session (Session): The linked counseling session.
+    """
+
     session = models.OneToOneField(
         Session,
         on_delete=models.CASCADE,
@@ -161,6 +234,16 @@ class ChatRoom(models.Model):
 
 
 class Message(models.Model):
+    """
+    Represents a single message sent in a chat room.
+
+    Attributes:
+        room (ChatRoom): The chat room the message belongs to.
+        sender (Profile): The sender of the message.
+        content (str): The text content of the message.
+        created_at (datetime): Timestamp when the message was sent.
+    """
+
     room = models.ForeignKey(
         ChatRoom,
         on_delete=models.CASCADE,
@@ -179,6 +262,17 @@ class Message(models.Model):
 
 
 class EmergencyRequest(models.Model):
+    """
+    Represents an urgent support request from a user.
+
+    Attributes:
+        user (User): The user making the request.
+        details (str): Description of the emergency.
+        status (str): Status of the request (pending, resolved).
+        hotline_info (dict): JSON with hotline contact details.
+        created_at (datetime): Timestamp of request creation.
+    """
+
     STATUS_PENDING = "pending"
     STATUS_RESOLVED = "resolved"
     STATUS_CHOICES = [
@@ -201,6 +295,16 @@ class EmergencyRequest(models.Model):
     
 
 class AuditLog(models.Model):
+    """
+    Logs actions taken by users for auditing purposes.
+
+    Attributes:
+        user (User): User who performed the action.
+        action (str): Description of the action.
+        entity (str): The entity affected by the action.
+        timestamp (datetime): When the action occurred.
+    """
+    
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
